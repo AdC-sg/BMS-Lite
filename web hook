@@ -1,0 +1,137 @@
+export default {
+  async fetch(request, env, ctx) {
+    // Only handle POST requests
+    if (request.method !== 'POST') {
+      return new Response('Method not allowed', { status: 405 });
+    }
+
+    try {
+      // Get the FormSG data
+      const formData = await request.json();
+      
+      // Extract the data from FormSG webhook
+      const userData = {
+        fullName: formData.data.find(field => field.question === '[MyInfo] Name')?.answer || '',
+        organization: formData.data.find(field => field.question === 'My Organisation')?.answer || '',
+        playStoreEmail: formData.data.find(field => field.question === 'PlayStore Email')?.answer || '',
+        appStoreEmail: formData.data.find(field => field.question === 'App Store Email')?.answer || '',
+        dateReceived: new Date().toISOString().split('T')[0]
+      };
+
+      // Forward to your local dashboard (you'll need to update this URL)
+      const dashboardResponse = await fetch('https://your-dashboard-url.com/webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData)
+      });
+
+      return new Response('OK', { status: 200 });
+    } catch (error) {
+      console.error('Webhook error:', error);
+      return new Response('Internal Server Error', { status: 500 });
+    }
+  },
+};
+```4. Click **Save and Deploy**
+5. Your webhook URL will be: `https://your-worker-name.your-subdomain.workers.dev`
+
+### Part 3: FormSG Integration
+
+#### Step 1: Set Up Webhook in FormSG
+1. Open your FormSG form
+2. Go to **Settings** → **Webhooks**
+3. Enter your Cloudflare Worker URL in the "Endpoint URL" field
+4. Enable "Enable Retries"
+5. Save the settings
+
+#### Step 2: Test the Integration
+1. Submit a test form response
+2. Check your dashboard to see if the data appears
+3. If data doesn't appear, check the webhook logs in Cloudflare Workers dashboard
+
+### Part 4: LetterSG Integration
+
+#### Step 1: Get LetterSG API Access
+1. Log into **letters.gov.sg**
+2. Go to **API Integration** in the navigation
+3. Click **Generate API key**
+4. Copy and save your API key securely
+
+#### Step 2: Create LetterSG Template
+1. In LetterSG, create a new template for your beta invites
+2. Include these variables in your template:
+   - `{{recipient_name}}` - for the user's full name
+   - `{{username}}` - for the generated username
+   - `{{password}}` - for the generated password
+3. Note down your template ID
+
+#### Step 3: Configure Dashboard for LetterSG
+1. In your dashboard, you'll need to add your LetterSG API key
+2. Update the template ID in the dashboard settings
+3. Test sending a letter to yourself first
+
+### Part 5: Using Your Dashboard
+
+#### Daily Workflow:
+1. **Start your local server** (Step 3 from Part 1)
+2. **Open the dashboard** in your browser
+3. **Set organization prefix** at the top (e.g., "xps25_")
+4. **Review new applications** that came through FormSG
+5. **Edit usernames** if needed (click on the username field)
+6. **Regenerate passwords** if desired (click the refresh icon)
+7. **Approve selected users** (check boxes and click "Approve Selected")
+8. **Send invites** via LetterSG (click "Send Invites")
+9. **Export CSV** when needed (click "Export CSV")
+
+#### Copy Username/Password:
+- Click the copy button next to any username or password
+- The text will be copied to your clipboard
+- Use Ctrl+V to paste in your other application
+
+#### CSV Export Format:
+The exported CSV will have these columns:
+- `date_of_issue` - Current date
+- `recipient_name` - Full name from FormSG
+- `user_name` - Generated username with prefix
+- `password` - Generated password  
+- `Email(s)` - Combined PlayStore and App Store emails
+
+### Troubleshooting
+
+#### Dashboard Won't Load:
+- Ensure Python server is running (`python -m http.server 8000`)
+- Check you're accessing `http://localhost:8000`
+- Try a different port: `python -m http.server 8080`
+
+#### FormSG Data Not Appearing:
+- Check your Cloudflare Worker logs
+- Verify webhook URL in FormSG settings
+- Test webhook with a simple POST request
+
+#### LetterSG Integration Issues:
+- Verify your API key is correct
+- Check template ID matches your template
+- Ensure template variables match dashboard data
+
+#### Copy Function Not Working:
+- Use modern browsers (Chrome, Firefox, Edge)
+- Ensure you're accessing via HTTP/HTTPS (not file://)
+- Check browser permissions for clipboard access
+
+### Security Notes
+
+1. **Keep your LetterSG API key secure** - never share it publicly
+2. **Run the dashboard locally** for security - don't host it publicly
+3. **Regularly backup your data** using the CSV export
+4. **Use strong organization prefixes** to avoid username conflicts
+
+### Next Steps
+
+1. **Test the complete workflow** with a few sample users
+2. **Create your LetterSG email template** with proper formatting
+3. **Train your team** on using the dashboard interface
+4. **Set up regular backup schedule** for your user data
+
+Your dashboard is now ready to streamline your beta program management! The system will automatically generate usernames from names, create secure passwords, and help you manage the entire approval and notification process efficiently.
